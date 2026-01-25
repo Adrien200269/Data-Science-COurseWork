@@ -1,7 +1,4 @@
-# =============================================================================
-# Crime Data Cleaning Script
-# Processes all crime data files from Cheshire and Cumbria (Cumberland)
-# =============================================================================
+=
 
 library(tidyverse)
 library(lubridate)
@@ -9,9 +6,7 @@ library(lubridate)
 base_path <- "./CourseWork_Ds_sabjaShrestha"
 crime_folder <- file.path(base_path, "Obtained Data/CrimeRate")
 
-# =============================================================================
-# FUNCTION: Load all crime data from all month folders
-# =============================================================================
+
 
 load_all_crime_data <- function(crime_folder) {
   # Get all month folders
@@ -26,7 +21,6 @@ load_all_crime_data <- function(crime_folder) {
       tryCatch({
         crime_df <- read_csv(csv_file, show_col_types = FALSE)
         
-        # Determine region from filename
         if (grepl("cheshire", basename(csv_file), ignore.case = TRUE)) {
           crime_df$source_region <- "Cheshire"
         } else if (grepl("cumbria", basename(csv_file), ignore.case = TRUE)) {
@@ -45,21 +39,17 @@ load_all_crime_data <- function(crime_folder) {
     }
   }
   
-  # Combine all data
   combined <- bind_rows(all_crime_list)
   return(combined)
 }
 
-# =============================================================================
-# LOAD AND PROCESS CRIME DATA
-# =============================================================================
+
 
 cat("Loading crime data from all folders...\n")
 crime_data_raw <- load_all_crime_data(crime_folder)
 
 cat("Total records loaded:", nrow(crime_data_raw), "\n")
 
-# Clean and standardize the data
 crime_data_clean <- crime_data_raw %>%
   # Parse date components
   mutate(
@@ -67,20 +57,16 @@ crime_data_clean <- crime_data_raw %>%
     month_num = as.integer(str_sub(Month, 6, 7)),
     date = ym(Month)
   ) %>%
-  # Rename region column
   rename(region = source_region) %>%
-  # Clean LSOA name - extract district/town name
   mutate(
     lsoa_district = str_extract(`LSOA name`, "^[^\\s]+"),
     lsoa_area_code = str_extract(`LSOA name`, "[0-9]+[A-Z]$")
   ) %>%
-  # Remove records with missing critical fields
   filter(
     !is.na(`Crime type`),
     !is.na(region),
     region != "Unknown"
   ) %>%
-  # Select and reorder columns
   select(
     crime_id = `Crime ID`,
     month = Month,
@@ -98,11 +84,6 @@ crime_data_clean <- crime_data_raw %>%
     outcome = `Last outcome category`
   )
 
-# =============================================================================
-# CREATE SUMMARY TABLES
-# =============================================================================
-
-# Summary by region and crime type
 crime_summary_by_type <- crime_data_clean %>%
   group_by(region, crime_type) %>%
   summarise(
@@ -111,7 +92,6 @@ crime_summary_by_type <- crime_data_clean %>%
   ) %>%
   arrange(region, desc(total_incidents))
 
-# Summary by region and year
 crime_summary_by_year <- crime_data_clean %>%
   group_by(region, year) %>%
   summarise(
@@ -120,7 +100,6 @@ crime_summary_by_year <- crime_data_clean %>%
     .groups = "drop"
   )
 
-# Summary by month (for trend analysis)
 crime_summary_by_month <- crime_data_clean %>%
   group_by(region, date, year, month_num) %>%
   summarise(
@@ -129,7 +108,6 @@ crime_summary_by_month <- crime_data_clean %>%
   ) %>%
   arrange(date)
 
-# Drug offense specific summary
 drug_offense_summary <- crime_data_clean %>%
   filter(crime_type == "Drugs") %>%
   group_by(region, year, month_num, lsoa_district) %>%
@@ -138,7 +116,6 @@ drug_offense_summary <- crime_data_clean %>%
     .groups = "drop"
   )
 
-# Vehicle crime summary
 vehicle_crime_summary <- crime_data_clean %>%
   filter(crime_type == "Vehicle crime") %>%
   group_by(region, year, month_num) %>%
@@ -147,7 +124,6 @@ vehicle_crime_summary <- crime_data_clean %>%
     .groups = "drop"
   )
 
-# Robbery summary
 robbery_summary <- crime_data_clean %>%
   filter(crime_type == "Robbery") %>%
   group_by(region, year, month_num) %>%
@@ -156,17 +132,11 @@ robbery_summary <- crime_data_clean %>%
     .groups = "drop"
   )
 
-# =============================================================================
-# SAVE CLEANED DATA
-# =============================================================================
-
-# Create cleaned data directory if it doesn't exist
 cleaned_dir <- file.path(base_path, "CleanedData")
 if (!dir.exists(cleaned_dir)) {
   dir.create(cleaned_dir, recursive = TRUE)
 }
 
-# Save all cleaned data
 write_csv(crime_data_clean, file.path(cleaned_dir, "crime_data_cleaned.csv"))
 write_csv(crime_summary_by_type, file.path(cleaned_dir, "crime_summary_by_type.csv"))
 write_csv(crime_summary_by_year, file.path(cleaned_dir, "crime_summary_by_year.csv"))
@@ -175,9 +145,6 @@ write_csv(drug_offense_summary, file.path(cleaned_dir, "drug_offense_summary.csv
 write_csv(vehicle_crime_summary, file.path(cleaned_dir, "vehicle_crime_summary.csv"))
 write_csv(robbery_summary, file.path(cleaned_dir, "robbery_summary.csv"))
 
-# =============================================================================
-# PRINT SUMMARY STATISTICS
-# =============================================================================
 
 cat("\n========================================\n")
 cat("CRIME DATA CLEANING COMPLETE\n")

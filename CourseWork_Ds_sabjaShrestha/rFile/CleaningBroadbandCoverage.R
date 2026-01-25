@@ -3,18 +3,14 @@ library(tidyverse)
 
 base_path <- "./CourseWork_Ds_sabjaShrestha"
 
-# Read coverage data in chunks due to file size
 coverage_file <- file.path(base_path, "Obtained Data/Internet Speed/201809_fixed_pc_coverage_r01.csv")
 
-# Read the file
+
 broadband_coverage <- read_csv(coverage_file, show_col_types = FALSE)
 
-# Check column names
+
 print(colnames(broadband_coverage))
 
-# Filter for Cheshire and Cumberland postcodes
-# Cheshire: CH, CW, WA, SK (partial)
-# Cumberland: CA
 
 broadband_coverage_filtered <- broadband_coverage %>%
   mutate(
@@ -22,8 +18,6 @@ broadband_coverage_filtered <- broadband_coverage %>%
   ) %>%
   filter(postcode_area %in% c("CH", "CW", "CA", "WA", "SK"))
 
-# Select relevant coverage columns
-# Common coverage metrics include SFBB availability, UFBB availability
 coverage_clean <- broadband_coverage_filtered %>%
   select(
     postcode,
@@ -35,7 +29,6 @@ coverage_clean <- broadband_coverage_filtered %>%
     contains("availability")
   )
 
-# Add region classification
 coverage_clean <- coverage_clean %>%
   mutate(
     region = case_when(
@@ -45,10 +38,9 @@ coverage_clean <- coverage_clean %>%
     )
   )
 
-# Save cleaned coverage data
+
 write_csv(coverage_clean, file.path(base_path, "CleanedData/broadband_coverage_cleaned.csv"))
 
-# Create summary by postcode district
 coverage_summary <- coverage_clean %>%
   mutate(
     postcode_district = str_extract(postcode, "^[A-Z]+[0-9]+")

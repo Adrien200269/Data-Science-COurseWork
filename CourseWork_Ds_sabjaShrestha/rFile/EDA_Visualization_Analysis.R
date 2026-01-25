@@ -1,6 +1,3 @@
-
-
-# Load required libraries
 library(tidyverse)
 library(ggplot2)
 library(dplyr)
@@ -8,27 +5,22 @@ library(lubridate)
 library(scales)
 library(gridExtra)
 
-# Set working directory path
 base_path <- "./CourseWork_Ds_sabjaShrestha"
 
-# =============================================================================
-# SECTION 1: DATA LOADING AND PREPROCESSING
-# =============================================================================
 
-# --- 1.1 Load House Price Data ---
+
 house_prices_2022 <- read_csv(file.path(base_path, "CleanedData/CleanedHousePrices2022.csv"))
 house_prices_2023 <- read_csv(file.path(base_path, "CleanedData/CleanedHousePrices2023.csv"))
 house_prices_2024 <- read_csv(file.path(base_path, "CleanedData/CleanedHousePrices2024.csv"))
 
-# Add year column
+
 house_prices_2022 <- house_prices_2022 %>% mutate(year = 2022)
 house_prices_2023 <- house_prices_2023 %>% mutate(year = 2023)
 house_prices_2024 <- house_prices_2024 %>% mutate(year = 2024)
 
-# Combine all house price data
+
 all_house_prices <- bind_rows(house_prices_2022, house_prices_2023, house_prices_2024)
 
-# Standardize county names to assign to Cheshire or Cumberland
 all_house_prices <- all_house_prices %>%
   mutate(
     region = case_when(
@@ -39,10 +31,8 @@ all_house_prices <- all_house_prices %>%
   ) %>%
   filter(region != "Other")
 
-# --- 1.2 Load Broadband Performance Data ---
 broadband_performance <- read_csv(file.path(base_path, "CleanedData/internetSpeed_performance.csv"))
 
-# Add postcode area for classification (first letters of postcode)
 broadband_performance <- broadband_performance %>%
   mutate(
     postcode_area = str_extract(postcode, "^[A-Z]+"),
@@ -53,7 +43,6 @@ broadband_performance <- broadband_performance %>%
     )
   )
 
-# --- 1.3 Load Population Data ---
 population_data <- read_csv(
   file.path(base_path, "Obtained Data/Population2011_1656567141570.csv"),
   col_types = cols(
@@ -62,7 +51,6 @@ population_data <- read_csv(
   )
 )
 
-# Clean population data
 population_data <- population_data %>%
   mutate(
     Postcode = str_replace_all(Postcode, " ", ""),
@@ -70,7 +58,6 @@ population_data <- population_data %>%
   ) %>%
   filter(!is.na(Population))
 
-# Extract postcode area for region mapping
 population_data <- population_data %>%
   mutate(
     postcode_area = str_extract(Postcode, "^[A-Z]+"),
@@ -82,7 +69,6 @@ population_data <- population_data %>%
   ) %>%
   filter(region != "Other")
 
-# --- 1.4 Load and Process Crime Data ---
 load_crime_data <- function(base_path) {
   crime_folder <- file.path(base_path, "Obtained Data/CrimeRate")
   month_folders <- list.dirs(crime_folder, recursive = FALSE)
@@ -116,11 +102,6 @@ crime_data <- crime_data %>%
 
 cat("Data loaded successfully!\n")
 
-# =============================================================================
-# SECTION 2: HOUSE PRICES EDA AND VISUALIZATION
-# =============================================================================
-
-# --- 2.1 Calculate Average House Prices by Town ---
 avg_house_prices_by_town <- all_house_prices %>%
   group_by(town, region, year) %>%
   summarise(
@@ -131,7 +112,7 @@ avg_house_prices_by_town <- all_house_prices %>%
   ) %>%
   filter(num_sales >= 5)
 
-# --- 2.2 BOXPLOT: Average House Prices for Year 2023 by Town ---
+
 house_prices_2023_summary <- avg_house_prices_by_town %>%
   filter(year == 2023)
 
@@ -165,7 +146,7 @@ ggsave(file.path(base_path, "Graphs/boxplot_house_prices_2023.png"),
        plot = p1, width = 12, height = 8, dpi = 120)
 cat("Saved: boxplot_house_prices_2023.png\n")
 
-# --- 2.3 BAR CHART: Average House Price for 2022 (Both Counties) ---
+
 avg_prices_2022 <- avg_house_prices_by_town %>%
   filter(year == 2022) %>%
   group_by(region) %>%
@@ -196,7 +177,7 @@ ggsave(file.path(base_path, "Graphs/barchart_avg_house_prices_2022.png"),
        plot = p2, width = 14, height = 8, dpi = 120)
 cat("Saved: barchart_avg_house_prices_2022.png\n")
 
-# --- 2.4 LINE GRAPH: Average House Prices 2022-2024 (Both Counties) ---
+
 yearly_avg_prices <- all_house_prices %>%
   group_by(region, year) %>%
   summarise(
@@ -231,11 +212,7 @@ ggsave(file.path(base_path, "Graphs/linegraph_house_prices_2022_2024.png"),
        plot = p3, width = 10, height = 6, dpi = 120)
 cat("Saved: linegraph_house_prices_2022_2024.png\n")
 
-# =============================================================================
-# SECTION 3: BROADBAND SPEED EDA AND VISUALIZATION
-# =============================================================================
 
-# --- 3.1 BOXPLOT: Average Download Speeds by Region ---
 broadband_by_region <- broadband_performance %>%
   filter(region %in% c("Cheshire", "Cumberland"))
 
@@ -259,7 +236,6 @@ ggsave(file.path(base_path, "Graphs/boxplot_broadband_speeds.png"),
        plot = p4, width = 10, height = 6, dpi = 120)
 cat("Saved: boxplot_broadband_speeds.png\n")
 
-# --- 3.2 Create postcode district summary ---
 broadband_by_district <- broadband_performance %>%
   mutate(postcode_district = str_extract(postcode, "^[A-Z]+[0-9]+")) %>%
   group_by(postcode_district, region) %>%
@@ -272,7 +248,6 @@ broadband_by_district <- broadband_performance %>%
   ) %>%
   filter(region %in% c("Cheshire", "Cumberland"))
 
-# --- 3.3 STACKED BAR CHART: Cheshire Broadband Speeds ---
 cheshire_broadband <- broadband_by_district %>%
   filter(region == "Cheshire") %>%
   arrange(desc(avg_download)) %>%
@@ -298,7 +273,6 @@ ggsave(file.path(base_path, "Graphs/stacked_barchart_cheshire_broadband.png"),
        plot = p5, width = 12, height = 7, dpi = 120)
 cat("Saved: stacked_barchart_cheshire_broadband.png\n")
 
-# --- 3.4 STACKED BAR CHART: Cumberland Broadband Speeds ---
 cumberland_broadband <- broadband_by_district %>%
   filter(region == "Cumberland") %>%
   arrange(desc(avg_download)) %>%
@@ -324,11 +298,7 @@ ggsave(file.path(base_path, "Graphs/stacked_barchart_cumberland_broadband.png"),
        plot = p6, width = 12, height = 7, dpi = 120)
 cat("Saved: stacked_barchart_cumberland_broadband.png\n")
 
-# =============================================================================
-# SECTION 4: CRIME RATE EDA AND VISUALIZATION
-# =============================================================================
 
-# --- 4.1 BOXPLOT: Drug Offense Rate by Region ---
 drug_offenses <- crime_data %>%
   filter(`Crime type` == "Drugs") %>%
   group_by(region, `LSOA name`) %>%
@@ -351,13 +321,11 @@ ggsave(file.path(base_path, "Graphs/boxplot_drug_offenses.png"),
        plot = p7, width = 10, height = 6, dpi = 120)
 cat("Saved: boxplot_drug_offenses.png\n")
 
-# --- 4.2 Crime Summary for 2023 ---
 crime_2023 <- crime_data %>% filter(year == 2023)
 crime_summary_2023 <- crime_2023 %>%
   group_by(region, `Crime type`) %>%
   summarise(count = n(), .groups = "drop")
 
-# --- 4.3 BAR CHART: Crime Type Comparison 2023 ---
 radar_data <- crime_summary_2023 %>%
   filter(`Crime type` %in% c("Vehicle crime", "Burglary", "Drugs", 
                              "Robbery", "Violence and sexual offences",
@@ -385,7 +353,6 @@ ggsave(file.path(base_path, "Graphs/radarchart_vehicle_crime_2023.png"),
        plot = p8, width = 10, height = 8, dpi = 120)
 cat("Saved: radarchart_vehicle_crime_2023.png\n")
 
-# --- 4.4 PIE CHART: Robbery Rate 2023 ---
 robbery_2023 <- crime_summary_2023 %>% filter(`Crime type` == "Robbery")
 
 p9 <- ggplot(robbery_2023, aes(x = "", y = count, fill = region)) +
@@ -406,7 +373,6 @@ ggsave(file.path(base_path, "Graphs/piechart_robbery_2023.png"),
        plot = p9, width = 8, height = 6, dpi = 120)
 cat("Saved: piechart_robbery_2023.png\n")
 
-# --- 4.5 LINE GRAPH: Drug Offense Rate per 10k People ---
 population_by_region <- population_data %>%
   group_by(region) %>%
   summarise(total_population = sum(Population, na.rm = TRUE), .groups = "drop")
@@ -444,11 +410,6 @@ ggsave(file.path(base_path, "Graphs/linegraph_drug_offenses_per_10k.png"),
        plot = p10, width = 12, height = 6, dpi = 120)
 cat("Saved: linegraph_drug_offenses_per_10k.png\n")
 
-# =============================================================================
-# SECTION 5: LINEAR MODELING VISUALIZATIONS
-# =============================================================================
-
-# Prepare data for linear modeling
 house_by_district <- all_house_prices %>%
   mutate(postcode_district = str_extract(postcode, "^[A-Z]+[0-9]+")) %>%
   filter(year == 2023) %>%
@@ -481,7 +442,7 @@ ggsave(file.path(base_path, "Graphs/linear_model_price_vs_speed.png"),
        plot = p11, width = 10, height = 7, dpi = 120)
 cat("Saved: linear_model_price_vs_speed.png\n")
 
-# --- Regional Comparison ---
+
 broadband_by_region_summary <- broadband_by_region %>%
   group_by(region) %>%
   summarise(avg_download_speed = mean(mean_avg_download, na.rm = TRUE), .groups = "drop")
@@ -515,11 +476,7 @@ ggsave(file.path(base_path, "Graphs/linear_model_speed_vs_drug.png"),
        plot = p12, width = 10, height = 7, dpi = 120)
 cat("Saved: linear_model_speed_vs_drug.png\n")
 
-# =============================================================================
-# SECTION 6: RECOMMENDATION SYSTEM
-# =============================================================================
 
-# --- House Price Score (lower is better) ---
 house_price_scores <- all_house_prices %>%
   filter(year == 2023) %>%
   group_by(town, region) %>%
@@ -527,7 +484,6 @@ house_price_scores <- all_house_prices %>%
   filter(num_sales >= 5) %>%
   mutate(price_score = 10 * (1 - (avg_price - min(avg_price)) / (max(avg_price) - min(avg_price))))
 
-# --- Broadband Score (higher is better) ---
 town_postcodes <- all_house_prices %>% distinct(town, postcode)
 
 broadband_by_town <- broadband_by_district %>%
@@ -538,7 +494,6 @@ broadband_by_town <- broadband_by_district %>%
   summarise(avg_broadband = mean(avg_download, na.rm = TRUE), .groups = "drop") %>%
   mutate(broadband_score = 10 * (avg_broadband - min(avg_broadband)) / (max(avg_broadband) - min(avg_broadband)))
 
-# --- Crime Score (lower is better) ---
 crime_by_town <- crime_data %>%
   filter(year == 2023) %>%
   mutate(town_extracted = str_extract(`LSOA name`, "^[^\\s]+")) %>%
@@ -549,7 +504,7 @@ crime_by_town <- crime_data %>%
 crime_scores <- crime_by_town %>%
   mutate(crime_score = 10 * (1 - (total_crime - min(total_crime)) / (max(total_crime) - min(total_crime))))
 
-# --- Combine Scores ---
+
 overall_scores <- house_price_scores %>%
   select(town, region, price_score, avg_price) %>%
   left_join(broadband_by_town %>% select(town, broadband_score, avg_broadband), by = "town") %>%
@@ -619,14 +574,9 @@ ggsave(file.path(base_path, "Graphs/recommendation_score_breakdown.png"),
        plot = p14, width = 14, height = 8, dpi = 120)
 cat("Saved: recommendation_score_breakdown.png\n")
 
-# =============================================================================
-# SECTION 7: SAVE DATA
-# =============================================================================
-
 write_csv(overall_scores, file.path(base_path, "CleanedData/recommendation_scores.csv"))
 write_csv(top_10_towns, file.path(base_path, "CleanedData/top_10_recommended_towns.csv"))
 
-# Print summary
 cat("\n=== SUMMARY STATISTICS ===\n")
 cat("\nHouse Prices (2023):\n")
 print(all_house_prices %>% filter(year == 2023) %>% group_by(region) %>% 

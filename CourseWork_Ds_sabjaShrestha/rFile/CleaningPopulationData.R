@@ -1,17 +1,10 @@
-# =============================================================================
-# Population Data Cleaning and Analysis
-# Processing Census Population Data for Cheshire and Cumberland
-# =============================================================================
+
 
 library(tidyverse)
 
 base_path <- "./CourseWork_Ds_sabjaShrestha"
 
-# =============================================================================
-# SECTION 1: LOAD AND CLEAN POPULATION DATA
-# =============================================================================
 
-# Load raw population data
 population_raw <- read_csv(
   file.path(base_path, "Obtained Data/Population2011_1656567141570.csv"),
   col_types = cols(
@@ -25,18 +18,14 @@ cat("Raw data loaded:", nrow(population_raw), "records\n")
 # Clean population data
 population_clean <- population_raw %>%
   mutate(
-    # Remove spaces from postcode
     postcode_clean = str_replace_all(Postcode, " ", "") %>% str_to_upper(),
     
-    # Extract postcode components
     postcode_area = str_extract(postcode_clean, "^[A-Z]+"),
     postcode_district = str_extract(postcode_clean, "^[A-Z]+[0-9]+"),
     postcode_sector = str_extract(postcode_clean, "^[A-Z]+[0-9]+\\s*[0-9]"),
     
-    # Clean population number (remove commas)
     population = as.numeric(str_replace_all(Population, ",", "")),
     
-    # Assign region based on postcode area
     region = case_when(
       postcode_area == "CH" ~ "Cheshire",      # Chester area
       postcode_area == "CW" ~ "Cheshire",      # Crewe/Winsford area
@@ -54,11 +43,7 @@ population_clean <- population_raw %>%
 
 cat("Cleaned data:", nrow(population_clean), "records\n")
 
-# =============================================================================
-# SECTION 2: CREATE SUMMARY TABLES
-# =============================================================================
 
-# --- 2.1 Population by Region ---
 population_by_region <- population_clean %>%
   group_by(region) %>%
   summarise(
@@ -72,7 +57,6 @@ population_by_region <- population_clean %>%
 cat("\n=== Population by Region ===\n")
 print(population_by_region)
 
-# --- 2.2 Population by Postcode District ---
 population_by_district <- population_clean %>%
   group_by(postcode_district, region) %>%
   summarise(
@@ -99,24 +83,18 @@ population_by_area <- population_clean %>%
 cat("\n=== Population by Postcode Area ===\n")
 print(population_by_area)
 
-# =============================================================================
-# SECTION 3: SAVE CLEANED DATA
-# =============================================================================
 
-# Save cleaned population data
+
 write_csv(population_clean, file.path(base_path, "CleanedData/population_cleaned.csv"))
 write_csv(population_by_region, file.path(base_path, "CleanedData/population_by_region.csv"))
 write_csv(population_by_district, file.path(base_path, "CleanedData/population_by_district.csv"))
 write_csv(population_by_area, file.path(base_path, "CleanedData/population_by_area.csv"))
 
-# =============================================================================
-# SECTION 4: VISUALIZATION
-# =============================================================================
+
 
 library(ggplot2)
 library(scales)
 
-# --- 4.1 Population Distribution by Region ---
 png(file.path(base_path, "Graphs/population_by_region.png"), 
     width = 800, height = 600, res = 120)
 
@@ -140,7 +118,6 @@ ggplot(population_by_region, aes(x = region, y = total_population, fill = region
 
 dev.off()
 
-# --- 4.2 Population Distribution by Postcode Area ---
 png(file.path(base_path, "Graphs/population_by_postcode_area.png"), 
     width = 1000, height = 600, res = 120)
 
@@ -166,7 +143,6 @@ ggplot(population_by_area, aes(x = reorder(postcode_area, total_population),
 
 dev.off()
 
-# --- 4.3 Top 15 Most Populous Districts ---
 top_15_districts <- head(population_by_district, 15)
 
 png(file.path(base_path, "Graphs/population_top15_districts.png"), 
